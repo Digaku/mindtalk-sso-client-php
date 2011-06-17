@@ -2,18 +2,14 @@
 /**
  * Copyright (C) 2011 Ansvia.
  * File:           index.php
- * Summary:        Digaku SSO engine example.
+ * License:			MIT
+ * Summary:        Digaku SSO client example.
  * First writter:  robin <robin [at] digaku [dot] kom>
  */
 
-
-/**
- * Include constanta
- */
 require_once("inc.php");
 
 ?>
-<!DOCTYPE html>
 <html>
 	<head>
 		<meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -25,52 +21,50 @@ require_once("inc.php");
 		
 		<br />
 		
-		<?php if ($_COOKIE['digaku_connect']): ?>
-		
 		<?php
-		$logged_in = FALSE;
 		
-		/**
-		 * Saran untuk disimpan di session lokal atau cache hasil informasi datanya.
-		 */
-		$params = array(
-			"digaku_connect" => $_COOKIE['digaku_connect'],
-			"user_agent" => $_SERVER['HTTP_USER_AGENT'],
-			"session_id" => $_COOKIE['digaku_session_id'],
-			"api_key" => SSO_API_KEY,
-			"rf" => "json"
-		);
-		$data = url_post_data("http://" . SSO_API_ENDPOINT . "/v1/user_from_cookie", $params);
 		
-		if(isset($data)){
-			$rv = json_decode($data, true);
-			if(isset($rv) && key_exists("result", $rv)){
-				$user = $rv['result'];
-				
-				echo "<h1>Hi " . $user[name] . "!</h1>";
-				echo "<h2>You are now logged in via " . $user['client']['name'] . "</h2>";
-		
-				echo "<pre>";
-				echo "NAME: " . $user['name'] . "\n";
-				echo "ID: " . $user['id'];
-				echo "</pre>";
-				$logged_in = TRUE;
-			}else{
-				if($rv['error']['code'] != 403){
-					echo "Invalid api result.";
+		if ($_COOKIE['mindtalk_access_token']){
+			/**
+			 * Jika cookie dah di set.
+			 */
+			$logged_in = FALSE;
+			
+			/**
+			 * Saran untuk disimpan di session lokal atau cache hasil informasi datanya.
+			 */
+			$data = url_get_data("http://" . MINDTALK_API_ENDPOINT . "/v1/my/info?access_token=" . $_COOKIE['mindtalk_access_token'] . "&rf=json");
+
+			if(isset($data)){
+				$rv = json_decode($data, true);
+				if(isset($rv) && key_exists("result", $rv)){
+					$user = $rv['result'];
+					
+					echo "<h1>Hi " . $user['name'] . "!</h1>";
+			
 					echo "<pre>";
-					print_r($rv);
+					echo "NAME: " . $user['name'] . "\n";
+					echo "ID: " . $user['id'];
 					echo "</pre>";
-					die();
+					$logged_in = TRUE;
+				}else{
+					if($rv['error']['code'] != 7){
+						echo "Invalid api result.";
+						echo "<pre>";
+						print_r($rv);
+						echo "</pre>";
+						die();
+					}
 				}
 			}
-		}
-		
+		} // endif
 		?>
 		
-		<?php endif; ?>
-		
 		<?php if ($logged_in): ?>
+		
+		<!--
+		JIKA SUDAH LOGIN
+		-->
 		
 		<script type="text/javascript">
 		window.logout = function(){
@@ -81,8 +75,24 @@ require_once("inc.php");
 		
 		<?php else: ?>
 		
+		<!--
+		JIKA BELUM LOGIN
+		-->
+		
 		<h2>You are not logged in</h2>
 		
+		<p>Login manually:</p>
+		<div>
+			<script type="text/javascript">
+			window.oauth_login = function(){
+				window.location = '<?php echo "http://" . SSO_API_ENDPOINT . "/authorize?client_id=" . MINDTALK_CLIENT_ID . "&redirect_uri=" . OAUTH_CALLBACK; ?>';
+			};
+			</script>
+			<button onclick="oauth_login();">Click to do OAuth proccess</button>
+		</div>
+		
+		
+		<!-- <p>Login via inline login:</p> -->
 		<dg:login>
 		<!--
 		Digunakan untuk iframe login dari SSO server.
@@ -92,34 +102,33 @@ require_once("inc.php");
 		-->
 		</dg:login>
 		
-		<?php $origin_handler = urlencode(BASE_URL . "/digaku_auth_handler"); ?>
+		
+		<!--
+		SSO auto login settings.
+		Parameters:
+			SSO_API_ENDPOINT -- {String} url auth.mindtalk.com.
+			BACK_URL -- {String} base url website ini. Contoh: www.bolalob.tv
+			ORIGIN_HANDLER -- {String} url handler yang akan digunakan sebagai callback.
+								Pada contoh ini file ada di `digaku_auth_handler.php`.
+			USE_INLINE_LOGIN -- {Bool} tampilkan inline login bila perlu (biasanya untuk debugging),
+								Harus buat juga element dgml `<dg:login>`, di mana
+								yang akan dijadikan placeholder tampilan login.
+		-->
+		<script type="text/javascript">
+		window.digaku_connect_settings = {
+			SSO_API_ENDPOINT : "<?php echo SSO_API_ENDPOINT; ?>",
+			SSO_API_KEY : "<?php echo MINDTALK_API_KEY; ?>",
+			BACK_URL : "<?php echo BASE_URL; ?>",
+			ORIGIN_HANDLER : "<?php echo urlencode(BASE_URL . "/digaku_auth_handler.php"); ?>",
+			USE_INLINE_LOGIN : false
+		};
+		</script>
 
 
 		<script type="application/x-javascript">
-			var SSO_API_ENDPOINT = "<?php echo SSO_API_ENDPOINT; ?>";
-			var BACK_URL = "<?php echo BASE_URL; ?>";
-			var ORIGIN_HANDLER = "<?php echo $origin_handler; ?>";
-			var USE_INLINE_LOGIN = true;
-			var ifr = document.createElement("iframe");
-			ifr.style.display = "none";
-			ifr.style.border = "none";
-			document.body.appendChild(ifr);
-			ifr.src = "http://" + SSO_API_ENDPOINT + "/v1/cred?origin_handler=" + encodeURI(ORIGIN_HANDLER);
-			if(USE_INLINE_LOGIN){
-				var elms = document.getElementsByTagName("dg:login");
-				if(elms.length > 0){
-					var elm = elms[0];
-					var ifrl = document.createElement("iframe");
-					ifrl.style.border = "none";
-					ifrl.style.minHeight = "200px";
-					ifrl.src = "http://" + SSO_API_ENDPOINT + "/v1/login_ui?origin_handler=" + encodeURI(ORIGIN_HANDLER);
-					elm.appendChild(ifrl);
-				}
-			}
+			(function(s){var d,u,f2;d=document;u=encodeURI;f2=d.createElement("iframe");f2.style.display="none";f2.style.border="none";d.body.appendChild(f2);f2.src="http://"+s.SSO_API_ENDPOINT+"/v1/cred?origin_handler="+u(s.ORIGIN_HANDLER)+"&api_key="+s.SSO_API_KEY;if(s.USE_INLINE_LOGIN){var elms=d.getElementsByTagName("dg:login");if(elms.length>0){var m=elms[0],f=d.createElement("iframe");f.style.border="none";f.style.minHeight="200px";f.src="http://"+s.SSO_API_ENDPOINT+"/v1/login_ui?origin_handler="+u(s.ORIGIN_HANDLER)+"&api_key="+s.SSO_API_KEY;m.appendChild(f)}};}).call(this,digaku_connect_settings);
 		</script>
 		<?php endif; ?>
-		
-
 
 	</body>
 </html>

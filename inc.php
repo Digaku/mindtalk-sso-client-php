@@ -1,24 +1,17 @@
 <?php
 /**
  * Copyright (C) 2011 Ansvia.
+ * License:			MIT
  * File:           inc.php
  * Summary:        Digaku SSO engine example.
- * First writter:  robin <robin [at] digaku [dot] kom>
+ * First writter:  robin <robin [at] digaku [dot] kom> 
  */
 
-/**
- * Please set DOMAIN_NAME correctly or your browser cannot save cookie
- * and produce infinite redirect loop.
- */
-define("DOMAIN_NAME", "sso-client.com");
-
-define("BASE_URL", "http://". DOMAIN_NAME ."/~Robin/mtsso");
-define("SSO_API_KEY", "809d4c10fead4d31076e0b52624ea1426fb872ba");
-define("SSO_API_ENDPOINT", "sso.example.com:2195");
+require_once("config.php");
 
 
 /**
- * Helpers
+ * Helpers untuk ngepost data.
  */
 function url_post_data($url, $params)
 {
