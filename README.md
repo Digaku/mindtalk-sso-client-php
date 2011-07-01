@@ -25,6 +25,9 @@ Installation
 
 $ git clone git://github.com/Digaku/mindtalk-sso-client-php.git
 
+See also
+---------
 
+* http://developer.digaku.com/api
 
 
